@@ -1,167 +1,86 @@
-/**
- * 
- */
-$(document).ready(function()
-{ 
-		if ($("#alertSuccess").text().trim() == "") 
-		 { 
-			$("#alertSuccess").hide(); 
-		 } 
-		 	$("#alertError").hide(); 
-}); 
+$.getJSON("http://localhost:8081/ServicePayment/ServicePayment/PaymentService", function(userData){
+        var responseObj = JSON.parse(JSON.stringify(userData));
 
-// SAVE ============================================
-$(document).on("click", "#btnSave", function(event) 
-{ 
-		// Clear alerts---------------------
-		 $("#alertSuccess").text(""); 
-		 $("#alertSuccess").hide(); 
-		 $("#alertError").text(""); 
-		 $("#alertError").hide(); 
-		 
-// Form validation-------------------
-var status = validateItemForm(); 
-		if (status != true) 
-		 { 
-			 $("#alertError").text(status); 
-			 $("#alertError").show(); 
-			 return; 
-		 } 
-		
-		
-// If valid------------------------
-		var type = ($("#hidItemIDSave").val() == "") ? "POST" : "PUT"; 
-		 $.ajax( 
-		 { 
-		 url : "PaymentAPI", 
-		 type : type, 
-		 data : $("#formItem").serialize(), 
-		 dataType : "text", 
-		 complete : function(response, status) 
-		 { 
-		 onItemSaveComplete(response.responseText, status); 
-		 } 
-		 });
-}); 
+        $.each(responseObj,function(i,payment){
+          appendToPaymentTable(payment);
+      });
 
-function onItemSaveComplete(response, status)
-{ 
-
-	if (status == "success") {
-		var resultSet = JSON.parse(response);
-		if (resultSet.status.trim() == "success") {
-			$("#alertSuccess").text("Successfully saved.");
-			$("#alertSuccess").show();
-			$("#divItemsGrid").html(resultSet.data);
-		}
-		
-
-		else if (resultSet.status.trim() == "error") {
-			$("#alertError").text(resultSet.data);
-			$("#alertError").show();
-		}
-		} 
-	else if (status == "error") {
-		$("#alertError").text("Error while saving.");
-		$("#alertError").show();
-		
-	} else {
-		$("#alertError").text("Unknown error while saving..");
-		$("#alertError").show();
-	}
-
-	$("#hidItemIDSave").val("");
-	$("#formItem")[0].reset();
-}
-// UPDATE==========================================
-$(document).on("click", ".btnUpdate", function(event) 
-{ 
-		 //$("#hidItemIDSave").val($(this).closest("tr").find('#hidItemIDUpdate').val());
-	     $("#hidItemIDSave").val($(this).data("Payment_ID"));
-		 $("#Benefactor	").val($(this).closest("tr").find('td:eq(0)').text()); 
-		 $("#Payer").val($(this).closest("tr").find('td:eq(1)').text()); 
-		 $("#Amount").val($(this).closest("tr").find('td:eq(2)').text()); 
-		 $("#Account_No").val($(this).closest("tr").find('td:eq(3)').text());
-		 $("#Bank").val($(this).closest("tr").find('td:eq(3)').text());
-		 
-}); 
-	// CLIENT-MODEL================================================================
-	function validateItemForm() 
-	{ 
-	// NAME
-		if ($("#Benefactor").val().trim() == "") 
-		 { 
-			return "Benefactor ."; 
-		 } 
-	// MAIL
-		if ($("#Payer").val().trim() == "") 
-		 { 
-			return "Insert ."; Payer
-		 }
-	// CODE
-		if ($("#projectCode").val().trim() == "") 
-		 { 
-			return "Insert Amount."; 
-		 }
-		
-	// PROJECT NAME
-		if ($("#Account_No").val().trim() == "") 
-		 { 
-			return "Insert Account_No ."; 
-		 }
-		
-	//Amount-------------------------------
-		if ($("#Bank").val().trim() == "") 
-		 { 
-			return "Insert Bank."; 
-		 } 
-	// is numerical value
-
-}
-	
-	//REMOVE
-	$(document).on("click", ".btnRemove", function(event)
-			{ 
-			 $.ajax( 
-			 { 
-			 url : "PaymentAPI", 
-			 type : "DELETE", 
-			 data : "Payment_ID=" + $(this).data("Payment_ID"),
-			 dataType : "text", 
-			 complete : function(response, status) 
-			 { 
-			 onItemDeleteComplete(response.responseText, status); 
-			 } 
-		 }); 
 });
-	
-	function onProductDeleteComplete(response, status) {
 
-		if (status == "success") {
-			var resultSet = JSON.parse(response);
-			if (resultSet.status.trim() == "success") {
-				$("#alertSuccess").text("Successfully deleted.");
-				$("#alertSuccess").show();
-				$("#divItemsGrid").html(resultSet.data);
-			}
+function appendToPaymentTable(payment) {
+    
+    $("#paymentTable > tbody:last-child").append(`
+          <tr id="user-${payment.id}">
+              <td class="userData" name="id">${payment.id}</td>
+              '<td class="userData" name="Benefactor">${payment.Benefactor}</td>
+              '<td class="userData" name="Payer">${payment.Payer}</td>
+              '<td class="userData" name="Amount">${payment.Amount}</td>
+              '<td class="userData" name="Account_No">${payment.Account_No}</td>
+              '<td class="userData" name="Account_No">${payment.Bank}</td>
+              '<td align="center">
+                  <button class="btn btn-success form-control" onClick="editPayment(${payment.id})" data-toggle="modal" data-target="#myModal")">EDIT</button>
+              </td>
+              <td align="center">
+                  <button class="btn btn-danger form-control" onClick="deletePayment(${payment.id})">DELETE</button>
+              </td>
+          </tr>
+      `)
+};
 
-			else if (resultSet.status.trim() == "error") {
-				$("#alertError").text(resultSet.data);
-				$("#alertError").show();
-			}
 
-		}
+function editPayment(id) {
+    $.getJSON("http://localhost:8081/ServicePayment/ServicePayment/PaymentService", function(userData){
+          var responseObj = JSON.parse(JSON.stringify(userData));
+          responseObj.forEach(function(payment, i) {
+            if (payment.id == id) {
+              $(".modal-body").empty().append(`
+                        <form id="updatePayment" action="">
+                            <label for="Benefactor">Benefactor</label>
+                            <input class="form-control" type="text" name="Benefactor" value="${payment.Benefactor}"/>
+                            <label for="Payer">Payer</label>
+                            <input class="form-control" type="text" name="Payer" value="${payment.Payer}"/>
+                            <label for="Amount">Amount</label>
+                            <input class="form-control" type="text" name="Amount" value="${payment.Amount}"/>
+                            <label for="Account_No">Account_No</label>
+                            <input class="form-control" type="text" name="Account_No" value="${payment.Account_No}"/>
+              `);
+              $(".modal-footer").empty().append(`
+                            <button type="button" type="submit" class="btn btn-primary" data-dismiss="modal" onClick="updatePayment(${id})">Save changes</button>
+                            <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                        </form>
+              `);
+            }
+          });
+    });
+      
+}
 
-		else if (status == "error") {
-			$("#alertError").text("Error while deleting.");
-			$("#alertError").show();
-		}
+function updatePayment(id) {
+    var payment2 = {};
+    payment2.id = id;
 
-		else {
-			$("#alertError").text("Unknown error while deleting..");
-			$("#alertError").show();
+    $("#updatePayment").children("input").each(function(){
+      payment2[$(this).attr("name")] = $(this).val();
+    })
+    console.log(payment2);
 
-		}
+    $.ajax({
+      async:true,
+      type:"PUT",
+      url:"http://localhost:8081/ServicePayment/ServicePayment/PaymentService",
+      data:JSON.stringify({ payment2 }),
+      contentType: 'application/json',
+      success:function(){
+        alert("success")
+      }
+    });
+}
 
-	}
-
+function deletePayment(id){
+  $.ajax({
+    type:"DELETE",
+    url:"http://localhost:8081/ServicePayment/ServicePayment/PaymentService",
+    data:`<paymentData><Payment_ID>${id}</Payment_ID></paymentData>`,
+    contentType: 'text/xml',
+  });
+}
